@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 
 const Navbar = () => {
+  const { data: session } = useSession();
+  const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -15,6 +19,7 @@ const Navbar = () => {
     e.preventDefault();
     console.log("Searching for:", searchQuery);
   };
+
   return (
     <nav className="bg-white border-gray-200 dark:bg-gray-900 shadow-sm">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto px-6 py-5 text-white">
@@ -26,12 +31,33 @@ const Navbar = () => {
           <span className="text-xl font-semibold">Portfolio Tracker</span>
         </Link>
         <div className="flex md:order-2">
-          <button
-            type="button"
-            className="text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 focus:ring-2 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all duration-200 ease-in-out"
-          >
-            Sign In
-          </button>
+          {session ? (
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  Welcome, {session.user.username}
+                </span>
+                <button
+                  onClick={() => signOut()}
+                  className="text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 focus:ring-2 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all duration-200 ease-in-out"
+                >
+                  Sign Out
+                </button>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                <span className="text-gray-600 font-medium">
+                  {session.user.username[0].toUpperCase()}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <Link
+              href="/auth/signin"
+              className="text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 focus:ring-2 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all duration-200 ease-in-out"
+            >
+              Sign In
+            </Link>
+          )}
           <button
             type="button"
             onClick={toggleMenu}
@@ -100,8 +126,8 @@ const Navbar = () => {
             </li>
             <li>
               <Link
-                href="#"
-                className="block py-2 px-3 text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:p-0 md:dark:text-blue-500 hover:opacity-80 transition-opacity duration-200 ease-in-out"
+                href="/"
+                className={`nav-link ${pathname === "/" ? "active" : ""}`}
                 aria-current="page"
               >
                 Home
@@ -110,7 +136,7 @@ const Navbar = () => {
             <li>
               <Link
                 href="/market"
-                className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700 transition-all duration-200 ease-in-out"
+                className={`nav-link ${pathname === "/market" ? "active" : ""}`}
               >
                 Market
               </Link>
@@ -118,7 +144,7 @@ const Navbar = () => {
             <li>
               <Link
                 href="#"
-                className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700 transition-all duration-200 ease-in-out"
+                className={`nav-link ${pathname === "/about" ? "active" : ""}`}
               >
                 About
               </Link>
@@ -126,7 +152,9 @@ const Navbar = () => {
             <li>
               <Link
                 href="#"
-                className="block py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
+                className={`nav-link ${
+                  pathname === "/contact" ? "active" : ""
+                }`}
               >
                 Contact
               </Link>
