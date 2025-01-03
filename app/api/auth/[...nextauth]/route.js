@@ -20,17 +20,13 @@ const authOptions = {
               { username: credentials.email }
             ]
           })
-          
           if (!user) {
             throw new Error("No user found with this email/username")
           }
-          
           const isCorrectPassword = await bcrypt.compare(credentials.password, user.password)
-          
           if (!isCorrectPassword) {
             throw new Error("Incorrect password")
           }
-          
           return user
         }
         catch (error) {

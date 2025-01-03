@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 
-export default function SignIn() {
+export default function SignUp() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,10 +32,6 @@ export default function SignIn() {
       setError("Please enter a valid email address");
       return false;
     }
-    if (credentials.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return false;
-    }
     return true;
   };
   const handleSubmit = async (e) => {
@@ -49,22 +45,16 @@ export default function SignIn() {
       return;
     }
     try {
-      const response = await fetch("/api/register/new", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
+      const result = await signIn("credentials", {
+        ...credentials,
+        redirect: false,
+        callbackUrl: intendedDestination,
       });
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || "Registration failed");
-        return;
+      if (result?.error) {
+        setError(errorMessages[result.error] || errorMessages.Default);
+      } else {
+        router.push(intendedDestination);
       }
-      const data = await response.json();
-      console.log("User registered successfully:", data);
-      setLoadingState({ isLoading: false, message: "Redirecting..." });
-      window.location.href = "/dashboard";
     } catch (error) {
       setError("An unexpected error occurred");
     } finally {
@@ -74,21 +64,8 @@ export default function SignIn() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Sign In</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block mb-1 font-medium">
-              Name
-            </label>
-            <input
-              type="name"
-              name="name"
-              id="name"
-              required
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              autoComplete="name"
-            />
-          </div>
           <div>
             <label htmlFor="email" className="block mb-1 font-medium">
               Email
@@ -139,7 +116,7 @@ export default function SignIn() {
             disabled={loadingState.isLoading}
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingState.isLoading ? loadingState.message : "Sign In"}
+            {loadingState.isLoading ? loadingState.message : "Login"}
           </button>
         </form>
       </div>
