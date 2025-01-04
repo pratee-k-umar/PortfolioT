@@ -16,8 +16,7 @@ const authOptions = {
         try {
           const user = await User.findOne({
             $or: [
-              { email: credentials.email },
-              { username: credentials.email }
+              { email: credentials.email }
             ]
           })
           if (!user) {
@@ -42,7 +41,7 @@ const authOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user._id
-        token.username = user.username
+        token.name = user.name
         token.email = user.email
       }
       return token
@@ -52,7 +51,7 @@ const authOptions = {
       if (token) {
         session.user = {
           id: token.id,
-          username: token.username,
+          name: token.name,
           email: token.email
         }
       }

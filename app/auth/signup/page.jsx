@@ -9,7 +9,6 @@ export default function SignUp() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [intendedDestination, setIntendedDestination] = useState("/");
   const [loadingState, setLoadingState] = useState({
     isLoading: false,
     message: "",
@@ -34,6 +33,7 @@ export default function SignUp() {
     }
     return true;
   };
+  // const intendedDestination = `/profile/${session.user.name}`;
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoadingState({ isLoading: true, message: "Logging in..." });
@@ -48,15 +48,16 @@ export default function SignUp() {
       const result = await signIn("credentials", {
         ...credentials,
         redirect: false,
-        callbackUrl: intendedDestination,
+        callbackUrl: "/",
       });
       if (result?.error) {
         setError(errorMessages[result.error] || errorMessages.Default);
       } else {
-        router.push(intendedDestination);
+        router.push("/");
       }
     } catch (error) {
       setError("An unexpected error occurred");
+      console.log(error)
     } finally {
       setLoadingState({ isLoading: false, message: "" });
     }

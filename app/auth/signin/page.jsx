@@ -1,24 +1,29 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 
 export default function SignIn() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [intendedDestination, setIntendedDestination] = useState("/");
+  const [intendedDestination, setIntendedDestination] = useState("/dashboard");
   const [loadingState, setLoadingState] = useState({
     isLoading: false,
     message: "",
   });
+
   const errorMessages = {
     CredentialsSignin: "Invalid email or password",
     Default: "An error occurred during sign in",
   };
+
   const validateForm = (credentials) => {
+    if (!credentials.name) {
+      setError("Name is required");
+      return false;
+    }
     if (!credentials.email) {
       setError("Email is required");
       return false;
@@ -40,7 +45,7 @@ export default function SignIn() {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoadingState({ isLoading: true, message: "Logging in..." });
+    setLoadingState({ isLoading: true, message: "Signing in..." });
     setError("");
     const formData = new FormData(e.target);
     const credentials = Object.fromEntries(formData);
@@ -58,16 +63,21 @@ export default function SignIn() {
       });
       if (!response.ok) {
         const errorData = await response.json();
-        setError(errorData.message || "Registration failed");
+        const errorMessage = errorMessages[errorData.code] || errorMessages.Default;
+        setError(errorMessage);
         return;
       }
       const data = await response.json();
       console.log("User registered successfully:", data);
       setLoadingState({ isLoading: false, message: "Redirecting..." });
-      window.location.href = "/dashboard";
-    } catch (error) {
-      setError("An unexpected error occurred");
-    } finally {
+      e.target.reset();
+      router.push(intendedDestination);
+    }
+    catch (error) {
+      console.error("Error during registration:", error);
+      setError(errorMessages.Default);
+    }
+    finally {
       setLoadingState({ isLoading: false, message: "" });
     }
   };

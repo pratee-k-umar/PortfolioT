@@ -1,25 +1,32 @@
-"use client";
+'use client';
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 
 const Navbar = () => {
+  const router = useRouter();
   const { data: session } = useSession();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
-
   const handleSearch = (e) => {
     e.preventDefault();
     console.log("Searching for:", searchQuery);
   };
-
+  const signOutRedirection = async () => {
+    await signOut({
+      callbackUrl: "/",
+    });
+  };
+  const profileRedirection = () => {
+    router.push(`/profile/${session.user.name}`);
+  };
+  // const isProfilePage = router.pathname.startsWith("/profile");
   return (
     <nav className="bg-white border-gray-200 dark:bg-gray-900 shadow-sm">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto px-6 py-5 text-white">
@@ -33,22 +40,25 @@ const Navbar = () => {
         <div className="flex md:order-2">
           {session ? (
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-2">
-                <span className="text-sm font-medium">
-                  Welcome, {session.user.username}
-                </span>
-                <button
-                  onClick={() => signOut()}
-                  className="text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 focus:ring-2 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all duration-200 ease-in-out"
+              {pathname === `/profile` ? (
+                <div className="hidden md:flex items-center gap-2">
+                  <button
+                    onClick={signOutRedirection}
+                    className="text-white bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 focus:ring-2 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all duration-200 ease-in-out"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div
+                  onClick={profileRedirection}
+                  className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
                 >
-                  Sign Out
-                </button>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                <span className="text-gray-600 font-medium">
-                  {session.user.username[0].toUpperCase()}
-                </span>
-              </div>
+                  <span className="text-gray-600 font-medium">
+                    {session.user.name[0]}
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
             <>
