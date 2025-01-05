@@ -43,6 +43,7 @@ const authOptions = {
         token.id = user._id
         token.name = user.name
         token.email = user.email
+        token.createdAt = user.createdAt
       }
       return token
     },
@@ -52,7 +53,8 @@ const authOptions = {
         session.user = {
           id: token.id,
           name: token.name,
-          email: token.email
+          email: token.email,
+          createdAt: token.createdAt
         }
       }
       return session

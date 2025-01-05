@@ -1,18 +1,40 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Profile() {
   const { data: session } = useSession();
   const userData = session?.user;
-  const [activeButton, setActiveButton] = useState('WatchList');
+  const [activeButton, setActiveButton] = useState("Dashboard");
+  const [userDetail, setUserDetail] = useState({});
+  const initials = (name) => {
+    if (!name) return "";
+    const nameParts = name.trim().split(" ");
+    return nameParts[0][0] + nameParts[nameParts.length - 1][0];
+  };
+  useEffect(() => {
+    const fetchUser = async () => {
+      const res = await fetch(`/api/user/${userData?.id}`);
+      const data = await res.json();
+      setUserDetail(data);
+    }
+    fetchUser();
+  }, [session])
+  const formatDate = (dateString) => {
+    const options = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  };
   return (
     <div className="bg-gradient-to-r from-blue-600 to-blue-400 text-white p-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-teal-600 flex items-center justify-center text-2xl font-bold">
-            {userData?.name[0]}
+            {initials(userData?.name?.toString())}
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -22,28 +44,8 @@ export default function Profile() {
           </div>
         </div>
         <div className="ml-auto">
-          <button onClick={() => setActiveButton("Settings")} className="border border-gray-600 rounded-lg px-4 py-2 flex items-center gap-2 text-gray-800 hover:bg-gray-800 hover:text-white">
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              ></path>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              ></path>
-            </svg>
-            Profile settings
-          </button>
+          <h1 className="text-3xl font-bold text-white leading-tight">Total Portfolio Value:</h1>
+          <p className="text-3xl font-bold text-white mb-6 leading-tight">5271.34</p>
         </div>
       </div>
       <div className="mt-4 flex items-center gap-2 text-sm text-white">
@@ -51,16 +53,32 @@ export default function Profile() {
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
           <path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
         </svg>
-        since Dec 23, 2023
+        since {formatDate(userDetail.createdAt)}
       </div>
       <div className="mt-8 flex justify-around gap-6 border-t border-gray-800 pt-4 w-full text-xl font-bold">
         <button
           className={`relative transition-colors duration-200 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-bottom-right after:scale-x-0 after:bg-white after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100 ${
-            activeButton === "WatchList" ? "after:scale-x-100" : ""
+            activeButton === "Dashboard" ? "after:scale-x-100" : ""
           }`}
-          onClick={() => setActiveButton("WatchList")}
+          onClick={() => setActiveButton("Dashboard")}
         >
-          WatchList
+          Dashboard
+        </button>
+        <button
+          className={`relative transition-colors duration-200 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-bottom-right after:scale-x-0 after:bg-white after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100 ${
+            activeButton === "Watchlist" ? "after:scale-x-100" : ""
+          }`}
+          onClick={() => setActiveButton("Watchlist")}
+        >
+          Wishlist
+        </button>
+        <button
+          className={`relative transition-colors duration-200 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-bottom-right after:scale-x-0 after:bg-white after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100 ${
+            activeButton === "Summary" ? "after:scale-x-100" : ""
+          }`}
+          onClick={() => setActiveButton("Summary")}
+        >
+          Summary
         </button>
         <button
           className={`relative transition-colors duration-200 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:origin-bottom-right after:scale-x-0 after:bg-white after:transition-transform after:duration-300 after:ease-out hover:after:origin-bottom-left hover:after:scale-x-100 ${
@@ -71,6 +89,7 @@ export default function Profile() {
           Settings
         </button>
       </div>
+      <div class="settings"></div>
     </div>
   );
 }

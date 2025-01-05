@@ -1,22 +1,17 @@
-'use client';
+"use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
 
 const Navbar = () => {
   const router = useRouter();
   const { data: session } = useSession();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
-  };
-  const handleSearch = (e) => {
-    e.preventDefault();
-    console.log("Searching for:", searchQuery);
   };
   const signOutRedirection = async () => {
     await signOut({
@@ -26,7 +21,7 @@ const Navbar = () => {
   const profileRedirection = () => {
     router.push(`/profile/${session.user.name}`);
   };
-  // const isProfilePage = router.pathname.startsWith("/profile");
+  const isProfilePage = pathname.startsWith("/profile");
   return (
     <nav className="bg-white border-gray-200 dark:bg-gray-900 shadow-sm">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto px-6 py-5 text-white">
@@ -40,7 +35,7 @@ const Navbar = () => {
         <div className="flex md:order-2">
           {session ? (
             <div className="flex items-center gap-4">
-              {pathname === `/profile` ? (
+              {isProfilePage ? (
                 <div className="hidden md:flex items-center gap-2">
                   <button
                     onClick={signOutRedirection}
@@ -104,83 +99,6 @@ const Navbar = () => {
               />
             </svg>
           </button>
-        </div>
-        <div
-          className={`items-center justify-between w-full md:flex md:w-auto md:order-1 ${
-            isMenuOpen ? "block" : "hidden"
-          }`}
-          id="navbar-search"
-        >
-          <ul className="flex flex-col p-4 md:p-0 mt-4 font-medium border border-gray-100 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700 items-center">
-            <li className="hidden md:block">
-              <div className="relative">
-                <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                  <svg
-                    className="w-4 h-4 text-gray-500 dark:text-gray-400"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
-                    />
-                  </svg>
-                  <span className="sr-only">Search icon</span>
-                </div>
-                <form onSubmit={handleSearch}>
-                  <input
-                    type="text"
-                    id="search-navbar"
-                    className="block w-full p-2.5 ps-10 text-sm text-gray-900 border border-gray-200 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ease-in-out dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    placeholder="Search..."
-                    aria-label="Search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </form>
-              </div>
-            </li>
-            <li>
-              <Link
-                href="/"
-                className={`nav-link ${pathname === "/" ? "active" : ""}`}
-                aria-current="page"
-              >
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/market"
-                className={`nav-link ${pathname === "/market" ? "active" : ""}`}
-              >
-                Market
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="#"
-                className={`nav-link ${pathname === "/about" ? "active" : ""}`}
-              >
-                About
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="#"
-                className={`nav-link ${
-                  pathname === "/contact" ? "active" : ""
-                }`}
-              >
-                Contact
-              </Link>
-            </li>
-          </ul>
         </div>
       </div>
     </nav>
