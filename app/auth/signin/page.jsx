@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { validate } from "@/utils/validator";
 
 export default function SignIn() {
   const router = useRouter();
@@ -13,35 +14,9 @@ export default function SignIn() {
     isLoading: false,
     message: "",
   });
-
   const errorMessages = {
     CredentialsSignin: "Invalid email or password",
     Default: "An error occurred during sign in",
-  };
-
-  const validateForm = (credentials) => {
-    if (!credentials.name) {
-      setError("Name is required");
-      return false;
-    }
-    if (!credentials.email) {
-      setError("Email is required");
-      return false;
-    }
-    if (!credentials.password) {
-      setError("Password is required");
-      return false;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(credentials.email)) {
-      setError("Please enter a valid email address");
-      return false;
-    }
-    if (credentials.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return false;
-    }
-    return true;
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,7 +24,7 @@ export default function SignIn() {
     setError("");
     const formData = new FormData(e.target);
     const credentials = Object.fromEntries(formData);
-    if (!validateForm(credentials)) {
+    if (!validate(credentials)) {
       setLoadingState({ isLoading: false, message: "" });
       return;
     }

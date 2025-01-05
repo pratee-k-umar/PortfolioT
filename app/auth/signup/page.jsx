@@ -33,7 +33,6 @@ export default function SignUp() {
     }
     return true;
   };
-  // const intendedDestination = `/profile/${session.user.name}`;
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoadingState({ isLoading: true, message: "Logging in..." });
