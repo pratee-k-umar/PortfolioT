@@ -12,8 +12,8 @@ const authOptions = {
         password: {},
       },
       authorize: async (credentials) => {
-        await connectToDB()
         try {
+          await connectToDB()
           const user = await User.findOne({
             $or: [
               { email: credentials.email }
@@ -40,26 +40,25 @@ const authOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user._id
-        token.name = user.name
-        token.email = user.email
-        token.createdAt = user.createdAt
+        token.id = user._id;
+        token.email = user.email;
+        token.name = user.name;
       }
-      return token
+      return token;
     },
-
     async session({ session, token }) {
-      if (token) {
-        session.user = {
-          id: token.id,
-          name: token.name,
-          email: token.email,
-          createdAt: token.createdAt
-        }
-      }
-      return session
-    }
-  }
+      const sessionUser = await User.findOne({
+        email: token.email
+      });
+      session.user = {
+        id: sessionUser._id.toString(),
+        name: sessionUser.name,
+        email: sessionUser.email,
+      };
+      return session;
+    },
+  },
+
 }
 
 const handler = NextAuth(authOptions)

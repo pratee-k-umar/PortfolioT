@@ -14,7 +14,7 @@ export default function Profile() {
   const [userDetail, setUserDetail] = useState({});
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [loadingState, setLoadingState] = useState({
     isLoading: false,
     message: "",
@@ -26,8 +26,12 @@ export default function Profile() {
   const initials = (name) => {
     if (!name) return "";
     const nameParts = name.trim().split(" ");
+    if (nameParts.length === 1) {
+      return nameParts[0][0];
+    }
     return nameParts[0][0] + nameParts[nameParts.length - 1][0];
   };
+
   useEffect(() => {
     const fetchUser = async () => {
       const res = await fetch(`/api/user/${userData?.id}`);
@@ -36,6 +40,7 @@ export default function Profile() {
     };
     fetchUser();
   }, [session]);
+
   const formatDate = (dateString) => {
     const options = {
       year: "numeric",
@@ -44,6 +49,7 @@ export default function Profile() {
     };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
   const handleUpdate = async (e) => {
     e.preventDefault();
     setLoadingState({ isLoading: true, message: "Updating..." });
@@ -78,33 +84,36 @@ export default function Profile() {
       setLoadingState({ isLoading: false, message: "" });
     }
   };
+
   const handleDelete = async (e) => {
     e.preventDefault();
-    setDeleteLoading(true)
+    setDeleteLoading(true);
     try {
       const response = await fetch(`/api/user/${userData?.id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-        }
+        },
       });
       if (!response.ok) {
-        const message = await response.json();
-        setDeleteLoading(false)
-        alert(message || "Error deleting user");
+        const errorData = await response.json();
+        alert(errorData.message || "Error deleting user");
+        setDeleteLoading(false);
         return;
       }
       const message = await response.json();
-      alert(message || "User deleted");
+      alert(message.message || "User deleted");
       router.push("/");
     } catch (error) {
-      console.log(error);
-      setDeleteLoading(false)
+      console.error("Error during deletion:", error);
+      alert("An error occurred while deleting the user.");
+      setDeleteLoading(false);
     } finally {
       setLoadingState({ isLoading: false, message: "" });
-      setDeleteLoading(false)
+      setDeleteLoading(false);
     }
   };
+
   return (
     <div>
       <div className="bg-gradient-to-r from-blue-600 to-blue-400 text-white p-6">
@@ -282,15 +291,12 @@ export default function Profile() {
                 disabled={loadingState.isLoading}
                 className="w-full bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {deleteLoading
-                  ? "Deleting..."
-                  : "Delete Account"}
+                {deleteLoading ? "Deleting..." : "Delete Account"}
               </button>
             </div>
           </div>
         )}
       </div>
-      <div class="settings"></div>
     </div>
   );
 }

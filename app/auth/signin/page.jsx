@@ -9,7 +9,6 @@ export default function SignIn() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [intendedDestination, setIntendedDestination] = useState("/dashboard");
   const [loadingState, setLoadingState] = useState({
     isLoading: false,
     message: "",
@@ -46,7 +45,7 @@ export default function SignIn() {
       console.log("User registered successfully:", data);
       setLoadingState({ isLoading: false, message: "Redirecting..." });
       e.target.reset();
-      router.push(intendedDestination);
+      router.push("/auth/signin");
     }
     catch (error) {
       console.error("Error during registration:", error);

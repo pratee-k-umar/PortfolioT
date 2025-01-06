@@ -13,6 +13,14 @@ const Navbar = () => {
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+  const initials = (name) => {
+    if (!name) return "";
+    const nameParts = name.trim().split(" ");
+    if (nameParts.length === 1) {
+      return nameParts[0][0];
+    }
+    return nameParts[0][0] + nameParts[nameParts.length - 1][0];
+  };
   const signOutRedirection = async () => {
     await signOut({
       callbackUrl: "/",
@@ -50,7 +58,7 @@ const Navbar = () => {
                   className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden cursor-pointer"
                 >
                   <span className="text-gray-600 font-medium">
-                    {session.user.name[0]}
+                    {initials(session?.user?.name)}
                   </span>
                 </div>
               )}
