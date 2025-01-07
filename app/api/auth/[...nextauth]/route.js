@@ -47,15 +47,20 @@ const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      const sessionUser = await User.findOne({
-        email: token.email
-      });
-      session.user = {
-        id: sessionUser._id.toString(),
-        name: sessionUser.name,
-        email: sessionUser.email,
-      };
-      return session;
+      try {
+        const sessionUser = await User.findOne({
+          email: token.email
+        });
+        session.user = {
+          id: sessionUser._id.toString(),
+          name: sessionUser.name,
+          email: sessionUser.email,
+        };
+        return session;
+      } catch (error) {
+        console.error("Session callback error:", error);
+        return session;
+      }
     },
   },
 

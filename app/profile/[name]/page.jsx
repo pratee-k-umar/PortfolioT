@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { validate } from "@/utils/validator";
@@ -31,7 +31,6 @@ export default function Profile() {
     }
     return nameParts[0][0] + nameParts[nameParts.length - 1][0];
   };
-
   useEffect(() => {
     const fetchUser = async () => {
       const res = await fetch(`/api/user/${userData?.id}`);
@@ -40,7 +39,6 @@ export default function Profile() {
     };
     fetchUser();
   }, [session]);
-
   const formatDate = (dateString) => {
     const options = {
       year: "numeric",
@@ -49,7 +47,6 @@ export default function Profile() {
     };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
-
   const handleUpdate = async (e) => {
     e.preventDefault();
     setLoadingState({ isLoading: true, message: "Updating..." });
@@ -84,7 +81,6 @@ export default function Profile() {
       setLoadingState({ isLoading: false, message: "" });
     }
   };
-
   const handleDelete = async (e) => {
     e.preventDefault();
     setDeleteLoading(true);
@@ -113,6 +109,7 @@ export default function Profile() {
       setDeleteLoading(false);
     }
   };
+  if (!session) redirect("/auth/signup");
 
   return (
     <div>

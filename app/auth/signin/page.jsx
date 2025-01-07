@@ -1,12 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, redirect } from "next/navigation";
 import { useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { validate } from "@/utils/validator";
+import { useSession } from "next-auth/react";
 
 export default function SignIn() {
   const router = useRouter();
+  const { data: session } = useSession()
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loadingState, setLoadingState] = useState({
@@ -55,6 +57,7 @@ export default function SignIn() {
       setLoadingState({ isLoading: false, message: "" });
     }
   };
+  if(session) redirect(`/profile/${session?.user?.name}`);
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">

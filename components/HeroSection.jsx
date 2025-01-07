@@ -84,7 +84,7 @@ const HeroSection = () => {
                 }hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 active:scale-95`}
                 aria-label="Get Started"
               >
-                <span className="relative flex items-center">
+                <span className="relative flex items-center text-blue-600">
                   Get Started
                   <ArrowRight
                     className={`

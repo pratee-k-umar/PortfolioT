@@ -1,12 +1,13 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 
 export default function SignUp() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loadingState, setLoadingState] = useState({
@@ -17,6 +18,11 @@ export default function SignUp() {
     CredentialsSignin: "Invalid email or password",
     Default: "An error occurred during sign in",
   };
+  useEffect(() => {
+    if (session) {
+      router.push(`/profile/${session?.user?.name}`);
+    }
+  }, [session, router]);
   const validateForm = (credentials) => {
     if (!credentials.email) {
       setError("Email is required");
@@ -46,17 +52,18 @@ export default function SignUp() {
     try {
       const result = await signIn("credentials", {
         ...credentials,
-        redirect: false,
-        callbackUrl: "/",
+        redirect: false
       });
       if (result?.error) {
         setError(errorMessages[result.error] || errorMessages.Default);
+      } else if (result?.ok) {
+        router.push(result.url || "/");
       } else {
-        router.push("/");
+        throw new Error("Unexpected error");
       }
     } catch (error) {
       setError("An unexpected error occurred");
-      console.log(error)
+      console.log(error);
     } finally {
       setLoadingState({ isLoading: false, message: "" });
     }
