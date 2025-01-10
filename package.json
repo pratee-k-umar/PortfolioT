@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "finnhub": "^1.2.19",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.469.0",
     "mongoose": "^8.9.3",
     "next": "15.1.3",
