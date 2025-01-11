@@ -11,6 +11,7 @@ export default function Market() {
   const [stockPrices, setStockPrices] = useState({});
   const base_url = "https://finnhub.io/api/v1";
   const apiKey = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+  const stockCache = {}
   const debouncedSearch = debounce((term) => {
     fetchStocks(term);
   }, 300);
@@ -22,29 +23,49 @@ export default function Market() {
       );
       const data = await res.json();
       setStocks(data.result || []);
-    } catch (error) {
+    }
+    catch (error) {
       console.log(error);
     }
   };
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const fetchStockData = async (symbol) => {
+    if(stockCache[symbol]) {
+      setStockPrices((prevPrices) => ({
+        ...prevPrices,
+        [symbol]: stockCache[symbol]
+      }))
+      return
+    }
     try {
       const res = await fetch(
         `${base_url}/quote?symbol=${symbol}&token=${apiKey}`
       );
+      if(res.status === 429) {
+        console.log("Rate limited, waiting 1 second before retrying")
+        await delay(1000)
+        return fetchStockData(symbol)
+      }
       const data = await res.json();
+      stockCache[symbol] = data
       setStockPrices((prevPrices) => ({
         ...prevPrices,
         [symbol]: data,
       }));
-    } catch (error) {
+    }
+    catch (error) {
       console.log(error);
     }
   };
-  useEffect(() => {
-    if (stocks.length > 0) {
-      const symbols = stocks.map((stock) => stock.symbol);
-      symbols.forEach((symbol) => fetchStockData(symbol));
+  const fetchAllStockPrices = async () => {
+    const symbols = stocks.map((stock) => stock.symbol);
+    for(const symbol of symbols) {
+      await delay(500)
+      fetchStockData(symbol)
     }
+  }
+  useEffect(() => {
+    if (stocks.length > 0) fetchAllStockPrices()
   }, [stocks]);
   const handleSearch = (e) => {
     const value = e.target.value;
