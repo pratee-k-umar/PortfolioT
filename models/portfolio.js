@@ -4,15 +4,36 @@ const PortfolioSchema = new Schema({
   user: {
     type: Schema.Types.ObjectId,
     ref: "User",
-  },
-  stocksymbol: {
-    type: stringify,
     required: true
   },
-  quantity: {
-    type: Number,
-    required: true
-  },
+  holdings: [
+    {
+      symbol: {
+        type: String,
+        required: true
+      },
+      companyName: {
+        type: String,
+        required: true
+      },
+      price: {
+        type: Number,
+        required: true
+      },
+      quantity: {
+        type: Number,
+        required: true
+      },
+      amount: {
+        type: Number,
+        required: true
+      },
+      purchaseDate: {
+        type: Date,
+        required: true
+      },
+    }
+  ]
 }, {
   timestamps: true
 })

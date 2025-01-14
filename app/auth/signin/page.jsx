@@ -43,8 +43,6 @@ export default function SignIn() {
         setError(errorMessage);
         return;
       }
-      const data = await response.json();
-      console.log("User registered successfully:", data);
       setLoadingState({ isLoading: false, message: "Redirecting..." });
       e.target.reset();
       router.push("/auth/signin");
