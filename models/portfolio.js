@@ -1,7 +1,7 @@
 import { Schema, model, models } from "mongoose";
 
 const PortfolioSchema = new Schema({
-  user: {
+  creator: {
     type: Schema.Types.ObjectId,
     ref: "User",
     required: true

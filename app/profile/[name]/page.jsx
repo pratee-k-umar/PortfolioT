@@ -15,6 +15,7 @@ export default function Profile() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  let portfolioValue = 0;
   const [loadingState, setLoadingState] = useState({
     isLoading: false,
     message: "",
@@ -109,8 +110,16 @@ export default function Profile() {
       setDeleteLoading(false);
     }
   };
+  useEffect(() => {
+    const response = async () => {
+      const res = await fetch(`api/market/portfolio/value/${session?.user?.id}`)
+      const data = res.json()
+      portfolioValue = data
+    }
+    response()
+  }, [session])
+  // console.log(portfolioValue)
   if (!session) redirect("/auth/signup");
-
   return (
     <div>
       <div className="bg-gradient-to-r from-blue-600 to-blue-400 text-white p-6">

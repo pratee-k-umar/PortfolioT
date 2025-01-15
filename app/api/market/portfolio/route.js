@@ -5,8 +5,8 @@ export const POST = async (req) => {
   const { user, stock, description, price, quantity, amount } = await req.json();
   try {
     await connectToDB();
-    let portfolio = await Portfolio.findOne({ user: user });
-    if (!portfolio) portfolio = new Portfolio({ user: user, holdings: [] });
+    let portfolio = await Portfolio.findOne({ creator: user });
+    if (!portfolio) portfolio = new Portfolio({ creator: user, holdings: [] });
     portfolio.holdings.push({
       symbol: stock,
       companyName: description,
