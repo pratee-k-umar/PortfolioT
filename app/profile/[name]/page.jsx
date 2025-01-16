@@ -5,6 +5,7 @@ import { redirect, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { validate } from "@/utils/validator";
+import Wishlist from "@/components/Wishlist";
 
 export default function Profile() {
   const router = useRouter();
@@ -15,7 +16,10 @@ export default function Profile() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  let portfolioValue = 0;
+  const [wishlist, setWishlist] = useState([]);
+  const [wishlistEditLoading, setWishlistEditLoading] = useState(false);
+  const [wishlistEditError, setWishlistEditError] = useState("");
+  const [wishlistDeleteLoading, setWishlistDeleteLoading] = useState(false);
   const [loadingState, setLoadingState] = useState({
     isLoading: false,
     message: "",
@@ -112,13 +116,76 @@ export default function Profile() {
   };
   useEffect(() => {
     const response = async () => {
-      const res = await fetch(`api/market/portfolio/value/${session?.user?.id}`)
-      const data = res.json()
-      portfolioValue = data
+      const res = await fetch(
+        `/api/market/portfolio/wishlist/${session?.user?.id}`
+      );
+      const data = await res.json();
+      setWishlist(data);
+    };
+    response();
+  }, [session]);
+  const handleWishlistEdit = async (e) => {
+    e.preventDefault();
+    setWishlistEditLoading(true);
+    const formData = new FormData(e.target);
+    const credentials = Object.fromEntries(formData);
+    if (!validate(credentials)) {
+      setWishlistEditLoading(false);
+      setWishlistEditError("Please fill all fields");
+      return;
     }
-    response()
-  }, [session])
-  // console.log(portfolioValue)
+    try {
+      const response = await fetch(
+        `/api/market/portofolio/wishlist/${session?.user?.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(credentials),
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        setWishlistEditLoading(false);
+        alert(errorData.message);
+        return;
+      }
+      alert("Wishlist Updated...");
+      setWishlistEditLoading(false);
+      setWishlistEditError("");
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setWishlistEditLoading(false);
+    }
+  };
+  const handleWishListDelete = async () => {
+    setWishlistDeleteLoading(true);
+    try {
+      const response = await fetch(
+        `api/market/portfolio/wishlist/${session?.user?.id}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response.ok) {
+        const errorData = await response.json();
+        setWishlistDeleteLoading(false);
+        alert(errorData.message);
+        return;
+      }
+      alert("Wishlist Deleted...");
+      setWishlistDeleteLoading(false);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setWishlistDeleteLoading(false);
+    }
+  };
   if (!session) redirect("/auth/signup");
   return (
     <div>
@@ -196,12 +263,7 @@ export default function Profile() {
           </div>
         )}
         {activeButton === "Watchlist" && (
-          <div className="mt-8">
-            <h1 className="text-3xl font-bold  leading-tight">Watchlist</h1>
-            <p className="text-xl font-bold mb-6 leading-tight">
-              Coming soon...
-            </p>
-          </div>
+          <Wishlist wishlist={wishlist} loading={wishlistDeleteLoading} />
         )}
         {activeButton === "Summary" && (
           <div className="mt-8">
