@@ -17,7 +17,3 @@ export const GET = async (req, { params }) => {
 export const PATCH = async () => {
   // TODO: implement edit endpoint
 }
-
-export const DELETE = async () => {
-  // TODO: implement delete endpoint
-}
