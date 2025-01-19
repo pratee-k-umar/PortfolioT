@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { TrendingUp, TrendingDown, Plus, Search, X } from "lucide-react";
 import debounce from "lodash/debounce";
 import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
 
 export default function Market() {
   const { data: session } = useSession();
@@ -79,7 +80,6 @@ export default function Market() {
   const closeModal = () => {
     setWishlistPopup(false);
     setSelectedStock(null);
-    setError("");
     stockForm.current.reset();
   };
   const handleModal = (stock, quote) => {
@@ -106,6 +106,9 @@ export default function Market() {
     setWishlistLoading(true);
     setError("");
     const credentials = Object.fromEntries(formData);
+    credentials.id = session?.user?.id;
+    credentials.stock = selectedStock;
+    credentials.quote = selectedStockPrice;
     if (!validator(credentials)) {
       setWishlistLoading(false);
       return;
@@ -116,14 +119,7 @@ export default function Market() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          user: session?.user?.id,
-          stock: selectedStock.symbol,
-          description: selectedStock.description,
-          price: selectedStockPrice.c,
-          quantity: credentials.quantity,
-          amount: credentials.amount,
-        }),
+        body: JSON.stringify(credentials),
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -132,7 +128,6 @@ export default function Market() {
       }
       setWishlistLoading(false);
       closeModal();
-      alert("Added to wishlist...");
     } catch (error) {
       console.log(error);
       setError("Error Occurred..!");
@@ -140,6 +135,7 @@ export default function Market() {
       setWishlistLoading(false);
     }
   };
+  if(!session) redirect("/auth/signup")
   return (
     <div>
       <div className="bg-gradient-to-r from-blue-600 to-blue-400 text-white py-12 px-4 relative overflow-hidden">
@@ -307,7 +303,6 @@ export default function Market() {
                             <input
                               type="number"
                               id="quantity"
-                              name="quantity"
                               min="1"
                               placeholder="Quantity"
                               className="w-full px-3 py-1 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 transition-colors"
@@ -317,7 +312,6 @@ export default function Market() {
                             <input
                               type="text"
                               id="amount"
-                              name="amount"
                               placeholder="Amount"
                               className="w-full px-3 py-1 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 transition-colors"
                             />
@@ -340,9 +334,7 @@ export default function Market() {
                   </button>
                   <button
                     type="submit"
-                    className={`inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
-                      wishlistLoading ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
+                    className="inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                     onClick={wishlistSubmit}
                   >
                     {wishlistLoading ? "Adding..." : "Add"}

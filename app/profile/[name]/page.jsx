@@ -2,8 +2,8 @@
 
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { EyeIcon, EyeOffIcon, X } from "lucide-react";
 import { validate } from "@/utils/validator";
 
 export default function Profile() {
@@ -16,6 +16,10 @@ export default function Profile() {
   const [showPassword, setShowPassword] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [wishlist, setWishlist] = useState([]);
+  const [wishlistModal, setWishlistModal] = useState(false);
+  const [selectedStock, setSelectedStock] = useState([]);
+  const [selectedStockPrice, setSelectedStockPrice] = useState([]);
+  const wishlistEditForm = useRef(null);
   const [wishlistEditLoading, setWishlistEditLoading] = useState(false);
   const [wishlistEditError, setWishlistEditError] = useState("");
   const [loadingState, setLoadingState] = useState({
@@ -40,8 +44,10 @@ export default function Profile() {
       const data = await res.json();
       setUserDetail(data);
     };
-    fetchUser();
-  }, [session]);
+    if (userData?.id) {
+      fetchUser();
+    }
+  }, [userData]);
   const formatDate = (dateString) => {
     const options = {
       year: "numeric",
@@ -120,21 +126,47 @@ export default function Profile() {
       const data = await res.json();
       setWishlist(data);
     };
-    response();
+    if (session?.user?.id) {
+      response();
+    }
   }, [session]);
-  const handleWishlistEdit = async (e, id) => {
+  const closeModal = () => {
+    setWishlistModal(false);
+    setSelectedStock(null);
+    wishlistEditForm.current.reset();
+  };
+  const handleModal = (data) => {
+    setSelectedStock(data);
+    setWishlistModal(true);
+  };
+  const wishlistValidate = () => {
+    const { quantity, amount } = wishlistEditForm.current;
+    if (!quantity.value || !amount.value) {
+      setWishlistEditError("Please fill all fields");
+      return false;
+    }
+    return true;
+  };
+  const wishlistUpdate = async (e) => {
     e.preventDefault();
+    if (wishlistEditForm.current) {
+      const formData = new FormData(wishlistEditForm.current);
+      formData.append("stockId", selectedStock._id);
+      handleWishlistEdit(formData);
+    }
+  };
+  const handleWishlistEdit = async (formData) => {
     setWishlistEditLoading(true);
-    const formData = new FormData(e.target);
     const credentials = Object.fromEntries(formData);
-    if (!validate(credentials)) {
+    console.log(credentials)
+    if (!wishlistValidate(credentials)) {
       setWishlistEditLoading(false);
       setWishlistEditError("Please fill all fields");
       return;
     }
     try {
       const response = await fetch(
-        `/api/market/portofolio/wishlist/${session?.user?.id}`,
+        `/api/market/portfolio/wishlist/${session?.user?.id}`,
         {
           method: "PATCH",
           headers: {
@@ -152,6 +184,7 @@ export default function Profile() {
       alert("Wishlist Updated...");
       setWishlistEditLoading(false);
       setWishlistEditError("");
+      closeModal();
     } catch (error) {
       console.log(error);
     } finally {
@@ -177,7 +210,7 @@ export default function Profile() {
       }
       alert("Wishlist Deleted...");
       setTimeout(() => {
-        router.refresh()
+        router.refresh();
       }, 500);
     } catch (error) {
       console.log(error);
@@ -327,7 +360,7 @@ export default function Profile() {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => handleWishlistEdit(data._id)}
+                              onClick={() => handleModal(data)}
                               className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors duration-150"
                             >
                               Edit
@@ -448,6 +481,96 @@ export default function Profile() {
           </div>
         )}
       </div>
+      {wishlistModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={closeModal}
+            ></div>
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md sm:p-6">
+              <button
+                onClick={closeModal}
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <div className="mt-3 text-center sm:mt-0 sm:text-left">
+                <h3 className="text-xl font-semibold leading-6 text-gray-900 mb-4">
+                  Update Wishlist
+                </h3>
+                <div className="mt-4 space-y-4">
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex justify-between items-start gap-8">
+                      <div className="flex-1">
+                        <p className="text-lg font-semibold text-gray-900">
+                          {selectedStock.symbol}
+                        </p>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {selectedStock.companyName}
+                        </p>
+                        <div className="mt-2 inline-flex items-center rounded-full text-sm font-medium text-blue-700">
+                          {selectedStockPrice.c !== undefined
+                            ? `$${selectedStockPrice.c.toFixed(2)}`
+                            : "—"}
+                        </div>
+                      </div>
+                      <form ref={wishlistEditForm} className="flex-1 space-y-4">
+                        <div className="space-y-3">
+                          <div>
+                            <input
+                              defaultValue={selectedStock.quantity || ""}
+                              type="number"
+                              id="quantity"
+                              name="quantity"
+                              min="1"
+                              placeholder="Quantity"
+                              className="w-full px-3 py-1 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 transition-colors"
+                            />
+                          </div>
+                          <div>
+                            <input
+                              defaultValue={selectedStock.amount || ""}
+                              type="text"
+                              id="amount"
+                              name="amount"
+                              placeholder="Amount"
+                              className="w-full px-3 py-1 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 transition-colors"
+                            />
+                          </div>
+                          {wishlistEditError && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {wishlistEditError}
+                            </p>
+                          )}
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                    onClick={closeModal}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className={`inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${
+                      wishlistEditLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={wishlistUpdate}
+                  >
+                    {wishlistEditLoading ? "Updating..." : "Update"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
