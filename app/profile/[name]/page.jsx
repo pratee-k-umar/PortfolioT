@@ -216,6 +216,9 @@ export default function Profile() {
       console.log(error);
     }
   };
+  useEffect(() => {
+    // TODO: implement websocket to fetch realtime prices.
+  })
   if (!session) redirect("/auth/signup");
   return (
     <div>
