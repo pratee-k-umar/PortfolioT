@@ -158,7 +158,7 @@ export default function Profile() {
   const handleWishlistEdit = async (formData) => {
     setWishlistEditLoading(true);
     const credentials = Object.fromEntries(formData);
-    console.log(credentials)
+    console.log(credentials);
     if (!wishlistValidate(credentials)) {
       setWishlistEditLoading(false);
       setWishlistEditError("Please fill all fields");
@@ -216,9 +216,77 @@ export default function Profile() {
       console.log(error);
     }
   };
+  const fetchStockData = (symbol, onUpdate) => {
+    if (!process.env.NEXT_PUBLIC_FINNHUB_API_KEY) {
+      console.error("Missing API key for Finnhub");
+      return null;
+    }
+    const socket = new WebSocket(
+      `wss://ws.finnhub.io?token=${process.env.NEXT_PUBLIC_FINNHUB_API_KEY}`
+    );
+    socket.onopen = () => {
+      console.log(`WebSocket connected for ${symbol}`);
+      socket.send(
+        JSON.stringify({
+          type: "subscribe",
+          symbol,
+        })
+      );
+    };
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "trade" && data.data) {
+          const trade = data.data.find((t) => t.s === symbol);
+          if (trade) {
+            onUpdate({
+              symbol: trade.s,
+              currentPrice: trade.p,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
+    socket.onerror = (event) => {
+      console.error(`WebSocket error for ${symbol}:`, event);
+    };
+    socket.onclose = () => {
+      console.log(`WebSocket disconnected for ${symbol}`);
+    };
+    return () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        console.log(`Unsubscribing from ${symbol}`);
+        socket.send(
+          JSON.stringify({
+            type: "unsubscribe",
+            symbol,
+          })
+        );
+      }
+      socket.close();
+    };
+  };
   useEffect(() => {
-    // TODO: implement websocket to fetch realtime prices.
-  })
+    if (!selectedStock.symbol) return;
+    const handleUpdate = (data) => {
+      setSelectedStockPrice((prevPrices) => ({
+        ...prevPrices,
+        [data.symbol]: data.currentPrice,
+      }));
+    };
+    const cleanUp = fetchStockData(selectedStock.symbol, handleUpdate);
+    return () => {
+      if (cleanUp) {
+        try {
+          cleanUp();
+        } catch (error) {
+          console.error("Error during WebSocket cleanup:", error);
+        }
+      }
+    };
+  }, [selectedStock.symbol]);
   if (!session) redirect("/auth/signup");
   return (
     <div>
@@ -351,7 +419,9 @@ export default function Profile() {
                           ${data.amount.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 text-right text-sm text-gray-900">
-                          Current Market Price
+                          {selectedStockPrice.p !== undefined
+                            ? `$${selectedStockPrice.p.toFixed(2)}`
+                            : "—"}
                         </td>
                         <td className="px-6 py-4 text-right text-sm font-medium text-gray-900">
                           ${data.quantity * data.amount}
