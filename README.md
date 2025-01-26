@@ -11,8 +11,8 @@ This is a portfolio tracking application built with [Next.js](https://nextjs.org
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd <repository-directory>
+   git clone https://github.com/pratee-k-umar/PortfolioT.git
+   cd app
    ```
 2. Install dependencies:
    ```bash
