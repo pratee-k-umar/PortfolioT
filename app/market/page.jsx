@@ -135,7 +135,6 @@ export default function Market() {
       setWishlistLoading(false);
     }
   };
-  if(!session) redirect("/auth/signup")
   return (
     <div>
       <div className="bg-gradient-to-r from-blue-600 to-blue-400 text-white py-12 px-4 relative overflow-hidden">
