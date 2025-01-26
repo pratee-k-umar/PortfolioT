@@ -42,6 +42,7 @@ export default function Profile() {
     CredentialsSignin: "Invalid email or password",
     Default: "An error occurred during sign in",
   };
+
   const initials = (name) => {
     if (!name) return "";
     const nameParts = name.trim().split(" ");
@@ -50,6 +51,7 @@ export default function Profile() {
     }
     return nameParts[0][0] + nameParts[nameParts.length - 1][0];
   };
+
   useEffect(() => {
     const fetchUser = async () => {
       const res = await fetch(`/api/user/${userData?.id}`);
@@ -60,6 +62,7 @@ export default function Profile() {
       fetchUser();
     }
   }, [userData]);
+
   const formatDate = (dateString) => {
     const options = {
       year: "numeric",
@@ -68,6 +71,7 @@ export default function Profile() {
     };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
+
   const handleUpdate = async (e) => {
     e.preventDefault();
     setLoadingState({ isLoading: true, message: "Updating..." });
@@ -102,6 +106,7 @@ export default function Profile() {
       setLoadingState({ isLoading: false, message: "" });
     }
   };
+
   const handleDelete = async (e) => {
     e.preventDefault();
     setDeleteLoading(true);
@@ -120,7 +125,7 @@ export default function Profile() {
       }
       const message = await response.json();
       alert(message.message || "User deleted");
-      router.push("/");
+      redirect("/");
     } catch (error) {
       console.error("Error during deletion:", error);
       alert("An error occurred while deleting the user.");
@@ -130,6 +135,7 @@ export default function Profile() {
       setDeleteLoading(false);
     }
   };
+
   useEffect(() => {
     const response = async () => {
       const res = await fetch(
@@ -142,15 +148,19 @@ export default function Profile() {
       response();
     }
   }, [session]);
+
   const closeModal = () => {
     setWishlistModal(false);
     setSelectedStock(null);
     wishlistEditForm.current.reset();
   };
+
   const handleModal = (data) => {
     setSelectedStock(data);
+    setSelectedStockPrice(data);
     setWishlistModal(true);
   };
+
   const wishlistValidate = () => {
     const { quantity, amount } = wishlistEditForm.current;
     if (!quantity.value || !amount.value) {
@@ -159,6 +169,7 @@ export default function Profile() {
     }
     return true;
   };
+
   const wishlistUpdate = async (e) => {
     e.preventDefault();
     if (wishlistEditForm.current) {
@@ -167,6 +178,7 @@ export default function Profile() {
       handleWishlistEdit(formData);
     }
   };
+
   const handleWishlistEdit = async (formData) => {
     setWishlistEditLoading(true);
     const credentials = Object.fromEntries(formData);
@@ -203,6 +215,7 @@ export default function Profile() {
       setWishlistEditLoading(false);
     }
   };
+
   const handleWishListDelete = async (stockId) => {
     try {
       const response = await fetch(
@@ -228,6 +241,7 @@ export default function Profile() {
       console.log(error);
     }
   };
+
   const fetchStockPrice = async (symbol) => {
     try {
       const response = await fetch(
@@ -243,6 +257,7 @@ export default function Profile() {
       console.log(error);
     }
   };
+
   const initializeHoldingPrice = async (holdings) => {
     const updateHolding = await Promise.all(
       holdings.map(async (holding) => {
@@ -255,6 +270,7 @@ export default function Profile() {
     );
     setWishlist(updateHolding);
   };
+
   const updateDBPrices = async () => {
     try {
       const updatedHoldings = await Promise.all(
@@ -274,6 +290,7 @@ export default function Profile() {
       console.log(error);
     }
   };
+
   const initializeSocket = async () => {
     if (!process.env.NEXT_PUBLIC_FINNHUB_API_KEY) {
       console.log("API key not configured..!");
@@ -352,6 +369,7 @@ export default function Profile() {
       console.log(error);
     }
   };
+
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -381,6 +399,7 @@ export default function Profile() {
       }
     };
   }, [wishlist]);
+
   useEffect(() => {
     const newTotalValue = wishlist.reduce(
       (total, holding) =>
@@ -390,6 +409,7 @@ export default function Profile() {
     );
     setTotalValue(newTotalValue);
   }, [wishlist]);
+
   const prepareChart = (holdings) => {
     const data = [];
     const currentDate = new Date();
@@ -412,8 +432,8 @@ export default function Profile() {
     }
     return data;
   };
+
   const chartData = prepareChart(wishlist);
-  console.log(wishlist);
   if (!session) redirect("/auth/signup");
   return (
     <div>
@@ -600,7 +620,7 @@ export default function Profile() {
                             : "—"}
                         </td>
                         <td className="px-6 py-4 text-right text-sm font-medium text-gray-900">
-                          ${data.quantity * data.amount}
+                          ${(data.quantity * data.amount).toFixed(2)}
                         </td>
                         <td className="px-6 py-4 text-right text-sm font-medium">
                           <span className="color-green">Gain</span>/
@@ -715,9 +735,9 @@ export default function Profile() {
                         ).currentPrice ||
                           wishlist.reduce((prev, curr) =>
                             ((curr.currentPrice || curr.price) - curr.price) /
-                              curr.price >
+                            curr.price >
                             ((prev.currentPrice || prev.price) - prev.price) /
-                              prev.price
+                            prev.price
                               ? curr
                               : prev
                           ).price) -
@@ -768,8 +788,7 @@ export default function Profile() {
                           (total, stock) =>
                             total +
                             stock.quantity *
-                              ((stock.currentPrice || stock.price) -
-                                stock.price),
+                              ((stock.currentPrice || stock.price) - stock.price),
                           0
                         )
                         .toFixed(2)
@@ -922,8 +941,8 @@ export default function Profile() {
                           {selectedStock.companyName}
                         </p>
                         <div className="mt-2 inline-flex items-center rounded-full text-sm font-medium text-blue-700">
-                          {selectedStockPrice.c !== undefined
-                            ? `$${selectedStockPrice.c.toFixed(2)}`
+                          {selectedStockPrice.price !== undefined
+                            ? `$${selectedStockPrice.price.toFixed(2)}`
                             : "—"}
                         </div>
                       </div>

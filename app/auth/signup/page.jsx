@@ -18,11 +18,13 @@ export default function SignUp() {
     CredentialsSignin: "Invalid email or password",
     Default: "An error occurred during sign in",
   };
+
   useEffect(() => {
     if (session) {
       router.push(`/profile/${session?.user?.name}`);
     }
   }, [session, router]);
+
   const validateForm = (credentials) => {
     if (!credentials.email) {
       setError("Email is required");
@@ -39,6 +41,7 @@ export default function SignUp() {
     }
     return true;
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoadingState({ isLoading: true, message: "Logging in..." });
@@ -52,7 +55,7 @@ export default function SignUp() {
     try {
       const result = await signIn("credentials", {
         ...credentials,
-        redirect: false
+        redirect: false,
       });
       if (result?.error) {
         setError(errorMessages[result.error] || errorMessages.Default);
@@ -68,7 +71,13 @@ export default function SignUp() {
       setLoadingState({ isLoading: false, message: "" });
     }
   };
-  if(session) return redirect(`/profile/${session?.user?.name}`)
+
+  useEffect(() => {
+    if (session) {
+      router.push(`/profile/${session?.user?.name}`);
+    }
+  }, [session, router]);
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
