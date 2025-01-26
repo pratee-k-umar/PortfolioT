@@ -5,6 +5,16 @@ import { redirect, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { EyeIcon, EyeOffIcon, X } from "lucide-react";
 import { validate } from "@/utils/validator";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function Profile() {
   const router = useRouter();
@@ -22,6 +32,8 @@ export default function Profile() {
   const wishlistEditForm = useRef(null);
   const [wishlistEditLoading, setWishlistEditLoading] = useState(false);
   const [wishlistEditError, setWishlistEditError] = useState("");
+  const socketRef = useRef(null);
+  const [totalValue, setTotalValue] = useState(0);
   const [loadingState, setLoadingState] = useState({
     isLoading: false,
     message: "",
@@ -216,77 +228,192 @@ export default function Profile() {
       console.log(error);
     }
   };
-  const fetchStockData = (symbol, onUpdate) => {
-    if (!process.env.NEXT_PUBLIC_FINNHUB_API_KEY) {
-      console.error("Missing API key for Finnhub");
-      return null;
+  const fetchStockPrice = async (symbol) => {
+    try {
+      const response = await fetch(
+        `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${process.env.NEXT_PUBLIC_FINNHUB_API_KEY}`
+      );
+      const data = await response.json();
+      if (data.error) {
+        console.log(data.error);
+        return null;
+      }
+      return data.c;
+    } catch (error) {
+      console.log(error);
     }
-    const socket = new WebSocket(
-      `wss://ws.finnhub.io?token=${process.env.NEXT_PUBLIC_FINNHUB_API_KEY}`
+  };
+  const initializeHoldingPrice = async (holdings) => {
+    const updateHolding = await Promise.all(
+      holdings.map(async (holding) => {
+        const currentPrice = await fetchStockPrice(holding.symbol);
+        return {
+          ...holding,
+          currentPrice: currentPrice || holding.price,
+        };
+      })
     );
-    socket.onopen = () => {
-      console.log(`WebSocket connected for ${symbol}`);
-      socket.send(
-        JSON.stringify({
-          type: "subscribe",
-          symbol,
+    setWishlist(updateHolding);
+  };
+  const updateDBPrices = async () => {
+    try {
+      const updatedHoldings = await Promise.all(
+        stockHoldings.map(async (holding) => {
+          const response = await fetch(
+            `https://finnhub.io/api/v1/quote?symbol=${holding.symbol}&token=${process.env.NEXT_PUBLIC_FINNHUB_API_KEY}`
+          );
+          const data = await response.json();
+          return {
+            ...holding,
+            currentPrice: data.c || holding.currentPrice || holding.price,
+          };
         })
       );
-    };
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "trade" && data.data) {
-          const trade = data.data.find((t) => t.s === symbol);
-          if (trade) {
-            onUpdate({
-              symbol: trade.s,
-              currentPrice: trade.p,
+      setWishlist(updatedHoldings);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const initializeSocket = async () => {
+    if (!process.env.NEXT_PUBLIC_FINNHUB_API_KEY) {
+      console.log("API key not configured..!");
+      return;
+    }
+    if (socketRef.current) socketRef.current.close();
+    try {
+      const socket = new WebSocket(
+        `wss://ws.finnhub.io?token=${process.env.NEXT_PUBLIC_FINNHUB_API_KEY}`
+      );
+      socketRef.current = socket;
+      let connectionAttempts = 0;
+      const maxAttempts = 3;
+      const maxSubscriptions = 5;
+      socket.addEventListener("open", () => {
+        console.log("Socket connected...");
+        connectionAttempts = 0;
+        wishlist.slice(0, maxSubscriptions).forEach((holding, index) => {
+          setTimeout(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(
+                JSON.stringify({
+                  type: "subscribe",
+                  symbol: holding.symbol,
+                })
+              );
+            }
+          }, index * 500);
+        });
+      });
+      socket.addEventListener("message", (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "trade" && message.data?.length > 0) {
+            setWishlist((prevHolding) => {
+              return prevHolding.map((holding) => {
+                const matchingTrade = message.data.find(
+                  (trade) => trade.s === holding.symbol
+                );
+                if (matchingTrade) {
+                  return {
+                    ...holding,
+                    currentPrice: matchingTrade.p,
+                  };
+                }
+                return holding;
+              });
             });
           }
+        } catch (error) {
+          console.log(error);
         }
-      } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
-      }
-    };
-    socket.onerror = (event) => {
-      console.error(`WebSocket error for ${symbol}:`, event);
-    };
-    socket.onclose = () => {
-      console.log(`WebSocket disconnected for ${symbol}`);
-    };
-    return () => {
-      if (socket.readyState === WebSocket.OPEN) {
-        console.log(`Unsubscribing from ${symbol}`);
-        socket.send(
-          JSON.stringify({
-            type: "unsubscribe",
-            symbol,
-          })
-        );
-      }
-      socket.close();
-    };
+      });
+      socket.addEventListener("error", (event) => {
+        console.log(event.error);
+        connectionAttempts++;
+        if (connectionAttempts >= maxAttempts) {
+          console.log("Falling back");
+          if (socket) socket.close();
+          const interval = setInterval(() => updateDBPrices(wishlist), 100000);
+          return () => clearInterval(interval);
+        }
+      });
+      socket.addEventListener("close", () => {
+        console.log("WebSocket disconnected");
+        if (connectionAttempts < maxAttempts) {
+          setTimeout(() => {
+            if (wishlist.length > 0) {
+              initializeSocket(wishlist);
+            }
+          }, 5000);
+        }
+      });
+      return socket;
+    } catch (error) {
+      console.log(error);
+    }
   };
   useEffect(() => {
-    if (!selectedStock.symbol) return;
-    const handleUpdate = (data) => {
-      setSelectedStockPrice((prevPrices) => ({
-        ...prevPrices,
-        [data.symbol]: data.currentPrice,
-      }));
-    };
-    const cleanUp = fetchStockData(selectedStock.symbol, handleUpdate);
-    return () => {
-      if (cleanUp) {
-        try {
-          cleanUp();
-        } catch (error) {
-          console.error("Error during WebSocket cleanup:", error);
+    const initialize = async () => {
+      try {
+        if (wishlist.length > 0) {
+          await initializeHoldingPrice(wishlist);
+          initializeSocket(wishlist);
         }
+      } catch (error) {
+        console.log(error);
       }
     };
-  }, [selectedStock.symbol]);
+    initialize();
+    return () => {
+      if (
+        socketRef.current &&
+        socketRef.current.readyState === WebSocket.OPEN
+      ) {
+        wishlist.forEach((holding) => {
+          socketRef.current?.send(
+            JSON.stringify({
+              type: "unsubscribe",
+              symbol: holding.symbol,
+            })
+          );
+        });
+        socketRef.current.close();
+      }
+    };
+  }, [wishlist]);
+  useEffect(() => {
+    const newTotalValue = wishlist.reduce(
+      (total, holding) =>
+        total +
+        holding.quantity * (holding.currentPrice || holding.purchase_price),
+      0
+    );
+    setTotalValue(newTotalValue);
+  }, [wishlist]);
+  const prepareChart = (holdings) => {
+    const data = [];
+    const currentDate = new Date();
+    const earliestDate = new Date();
+    earliestDate.setMonth(currentDate.getMonth() - 5);
+    let datePointer = new Date(earliestDate);
+    while (datePointer <= currentDate) {
+      const totalValue = holdings.reduce((sum, holding) => {
+        if (new Date(holding.purchaseDate) <= datePointer)
+          return sum + holding.currentPrice * holding.quantity;
+        return sum;
+      }, 0);
+      data.push({
+        x: `${datePointer.toLocaleString("default", {
+          month: "short",
+        })} ${datePointer.getFullYear()}`,
+        y: totalValue,
+      });
+      datePointer.setMonth(datePointer.getMonth() + 1);
+    }
+    return data;
+  };
+  const chartData = prepareChart(wishlist);
+  console.log(wishlist);
   if (!session) redirect("/auth/signup");
   return (
     <div>
@@ -316,7 +443,9 @@ export default function Profile() {
             <h1 className="text-3xl font-bold text-white">
               Total Portfolio Value:
             </h1>
-            <p className="text-3xl text-center font-bold text-white">5271.34</p>
+            <p className="text-3xl text-center font-bold text-white">
+              {totalValue.toFixed(2)}
+            </p>
           </div>
         </div>
         <div className="mt-8 flex justify-around gap-6 border-t border-gray-800 pt-4 w-full text-xl font-bold">
@@ -357,10 +486,57 @@ export default function Profile() {
       <div>
         {activeButton === "Dashboard" && (
           <div className="mt-8">
-            <h1 className="text-3xl font-bold leading-tight">Dashboard</h1>
-            <p className="text-xl font-bold mb-6 leading-tight">
-              Coming soon...
-            </p>
+            <h1 className="text-3xl font-bold leading-tight text-center">
+              Dashboard
+            </h1>
+            <div className="mt-10 mx-5 flex justify-between items-center gap-5">
+              <div className="w-1/2 mr-4">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={chartData}>
+                    <XAxis
+                      dataKey="x"
+                      label={{
+                        value: "Date",
+                        position: "insideBottomRight",
+                        offset: -5,
+                      }}
+                    />
+                    <YAxis
+                      label={{
+                        value: "Total Value",
+                        angle: -90,
+                        position: "insideLeft",
+                      }}
+                    />
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="y" stroke="#8884d8" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="w-1/2 bg-white rounded-lg shadow-md p-4">
+                <h2 className="text-lg font-bold mb-3">Summary</h2>
+                <div className="flex justify-between mb-2">
+                  <span className="font-medium">Total Value:</span>
+                  <span className="font-semibold">
+                    ${totalValue.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="font-medium">Monthly Change:</span>
+                  <span className="font-semibold text-green-500">+5.26%</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="font-medium">Top Stock:</span>
+                  <span className="font-semibold">AAPL (+11.39%)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-medium">Recent Transaction:</span>
+                  <span className="font-semibold">Bought 10 MSFT @ $500</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
         {activeButton === "Watchlist" && (
@@ -419,8 +595,8 @@ export default function Profile() {
                           ${data.amount.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 text-right text-sm text-gray-900">
-                          {selectedStockPrice.p !== undefined
-                            ? `$${selectedStockPrice.p.toFixed(2)}`
+                          {data.currentPrice !== undefined
+                            ? `$${data.currentPrice.toFixed(2)}`
                             : "—"}
                         </td>
                         <td className="px-6 py-4 text-right text-sm font-medium text-gray-900">
@@ -456,10 +632,173 @@ export default function Profile() {
         )}
         {activeButton === "Summary" && (
           <div className="mt-8">
-            <h1 className="text-3xl font-bold leading-tight">Summary</h1>
-            <p className="text-xl font-bold mb-6 leading-tight">
-              Coming soon...
-            </p>
+            <h1 className="text-3xl font-bold leading-tight text-center">
+              Summary
+            </h1>
+            <div className="grid grid-cols-2 gap-10 mt-10 mx-10">
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <h2 className="text-lg font-medium mb-2">
+                  Stock Holdings Summary
+                </h2>
+                <p className="mb-2">
+                  Total Holdings: {wishlist.length || 0} stocks
+                </p>
+                <p className="mb-2">
+                  Most Valuable Holding:{" "}
+                  {wishlist.length > 0
+                    ? wishlist.reduce((prev, curr) =>
+                        curr.quantity * (curr.currentPrice || curr.price) >
+                        prev.quantity * (prev.currentPrice || prev.price)
+                          ? curr
+                          : prev
+                      ).symbol
+                    : "N/A"}{" "}
+                  (
+                  {wishlist.length > 0
+                    ? (
+                        (wishlist.reduce((prev, curr) =>
+                          curr.quantity * (curr.currentPrice || curr.price) >
+                          prev.quantity * (prev.currentPrice || prev.price)
+                            ? curr
+                            : prev
+                        ).quantity *
+                          wishlist.reduce((prev, curr) =>
+                            curr.quantity * (curr.currentPrice || curr.price) >
+                            prev.quantity * (prev.currentPrice || prev.price)
+                              ? curr
+                              : prev
+                          ).currentPrice) /
+                        wishlist.reduce(
+                          (total, stock) =>
+                            total +
+                            stock.quantity *
+                              (stock.currentPrice || stock.price),
+                          0
+                        )
+                      ).toFixed(2)
+                    : 0}
+                  % of portfolio)
+                </p>
+                <p className="mb-2">
+                  Recently Added:{" "}
+                  {wishlist.length > 0
+                    ? wishlist[wishlist.length - 1].symbol
+                    : "N/A"}{" "}
+                  (
+                  {wishlist.length > 0
+                    ? wishlist[wishlist.length - 1].quantity
+                    : 0}{" "}
+                  shares)
+                </p>
+                <p className="mb-2">
+                  Best Performer:{" "}
+                  {wishlist.length > 0
+                    ? wishlist.reduce((prev, curr) =>
+                        ((curr.currentPrice || curr.price) - curr.price) /
+                          curr.price >
+                        ((prev.currentPrice || prev.price) - prev.price) /
+                          prev.price
+                          ? curr
+                          : prev
+                      ).symbol
+                    : "N/A"}{" "}
+                  (+{" "}
+                  {wishlist.length > 0
+                    ? (
+                        ((wishlist.reduce((prev, curr) =>
+                          ((curr.currentPrice || curr.price) - curr.price) /
+                            curr.price >
+                          ((prev.currentPrice || prev.price) - prev.price) /
+                            prev.price
+                            ? curr
+                            : prev
+                        ).currentPrice ||
+                          wishlist.reduce((prev, curr) =>
+                            ((curr.currentPrice || curr.price) - curr.price) /
+                              curr.price >
+                            ((prev.currentPrice || prev.price) - prev.price) /
+                              prev.price
+                              ? curr
+                              : prev
+                          ).price) -
+                          wishlist.reduce((prev, curr) =>
+                            ((curr.currentPrice || curr.price) - curr.price) /
+                              curr.price >
+                            ((prev.currentPrice || prev.price) - prev.price) /
+                              prev.price
+                              ? curr
+                              : prev
+                          ).price) /
+                        wishlist.reduce((prev, curr) =>
+                          ((curr.currentPrice || curr.price) - curr.price) /
+                            curr.price >
+                          ((prev.currentPrice || prev.price) - prev.price) /
+                            prev.price
+                            ? curr
+                            : prev
+                        ).price
+                      ).toFixed(2)
+                    : 0}
+                  % since purchase)
+                </p>
+              </div>
+              <div className="bg-white rounded-lg shadow-md p-4">
+                <h2 className="text-lg font-medium mb-2">
+                  Portfolio Value Summary
+                </h2>
+                <p className="mb-2">
+                  Current Total Value: $
+                  {wishlist.length > 0
+                    ? wishlist
+                        .reduce(
+                          (total, stock) =>
+                            total +
+                            stock.quantity *
+                              (stock.currentPrice || stock.price),
+                          0
+                        )
+                        .toFixed(2)
+                    : "0.00"}
+                </p>
+                <p className="mb-2">
+                  Today's Change: $
+                  {wishlist.length > 0
+                    ? wishlist
+                        .reduce(
+                          (total, stock) =>
+                            total +
+                            stock.quantity *
+                              ((stock.currentPrice || stock.price) -
+                                stock.price),
+                          0
+                        )
+                        .toFixed(2)
+                    : "0.00"}
+                </p>
+                <p className="mb-2">
+                  All-Time High: $
+                  {wishlist.length > 0
+                    ? Math.max(
+                        ...wishlist.map(
+                          (stock) =>
+                            stock.quantity * (stock.currentPrice || stock.price)
+                        )
+                      ).toFixed(2)
+                    : "0.00"}
+                </p>
+                <p className="mb-2">
+                  All-Time Low: $
+                  {wishlist.length > 0
+                    ? Math.min(
+                        ...wishlist.map(
+                          (stock) =>
+                            stock.quantity * (stock.currentPrice || stock.price)
+                        )
+                      ).toFixed(2)
+                    : "0.00"}
+                </p>
+              </div>
+            </div>
           </div>
         )}
         {activeButton === "Settings" && (
