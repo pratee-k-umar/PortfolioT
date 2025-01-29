@@ -18,7 +18,7 @@ const Navbar = () => {
   };
   const signOutRedirection = async () => {
     await signOut({
-      callbackUrl: "/",
+      callbackUrl: process.env.NEXT_PUBLIC_BASE_URL,
     });
   };
   const profileRedirection = () => {

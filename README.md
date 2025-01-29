@@ -1,6 +1,35 @@
 # Capx Portfolio Tracker
 
+![Home Page](./public/readme/Home.png)
+*Home Page of the application.*
+
 This is a portfolio tracking application built with [Next.js](https://nextjs.org). It allows users to manage their stock portfolios, track real-time stock prices, and maintain a wishlist of stocks.
+
+## Screenshots
+
+![Sign Up Page](./public/readme/SignUp.png)
+*Sign In Page of the application.*
+
+![Sign In Page](./public/readme/SignIn.png)
+*Sign In Page of the application.*
+
+![Signed In Home Page](./public/readme/SignedHome.png)
+*SignedIn Home Page of the application.*
+
+![Market](./public/readme/Market.png)
+*Market of the application.*
+
+![Profile Dashboard Page](./public/readme/ProfileDashboard.png)
+*Profile Dashboard Page of the application.*
+
+![Profile Wishlist Page](./public/readme/ProfileWishlist.png)
+*Profile Wishlist Page of the application.*
+
+![Profile Summary Page](./public/readme/ProfileSummary.png)
+*Profile Summary Page of the application.*
+
+![Profile Settings Page](./public/readme/ProfileSettings.png)
+*Profile Settings Page of the application.*
 
 ## Getting Started
 
