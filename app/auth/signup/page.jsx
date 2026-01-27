@@ -44,7 +44,7 @@ export default function SignUp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoadingState({ isLoading: true, message: "Logging in..." });
+    setLoadingState({ isLoading: true, message: "Signing in..." });
     setError("");
     const formData = new FormData(e.target);
     const credentials = Object.fromEntries(formData);
@@ -81,7 +81,7 @@ export default function SignUp() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Sign In</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block mb-1 font-medium">
@@ -133,7 +133,7 @@ export default function SignUp() {
             disabled={loadingState.isLoading}
             className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loadingState.isLoading ? loadingState.message : "Login"}
+            {loadingState.isLoading ? loadingState.message : "Sign In"}
           </button>
         </form>
       </div>
